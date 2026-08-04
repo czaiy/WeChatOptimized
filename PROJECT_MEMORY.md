@@ -156,6 +156,11 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - **根因**：使用了绝对坐标而非相对坐标
 - **教训**：**坐标后备方案必须使用窗口相对坐标（基于 `GetWindowRect`）**
 
+### 🔴 快手图文帖（图集）解析
+- **现象**：图文帖报"找不到 photo 对象/作品私密"，实际作品正常存在
+- **根因**：图集帖 `mainMvUrls` 为空，图片在 `photo.ext_params.atlas.list`（相对路径），需拼 `https://{atlas.cdnList[0].cdn}{path}`；`photoType: HORIZONTAL_ATLAS` 是图集标志
+- **教训**：**找 photo 对象按 `photoId`+`userName` 匹配，不能要求 mainMvUrls 非空；图集/单图/视频三种形态都要覆盖**
+
 ---
 
 ## 五、关键配置速查
@@ -221,6 +226,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | WeFlow token 轮换完成并重启桥接器（新 PID 5596，SSE/OB11 均连通）；清理规则实测通过（下载→发送→os.remove→0 残留）；README 截图待办按用户意愿移除 | config.json 新 token、PROJECT_MEMORY.md 更新 |
 | 2026-08-04 | video-downloader skill 优化：新增快手无水印解析脚本 + 平台策略速查表 + 结尾评论风格规则，实测通过 | scripts/kuaishou.py、SKILL.md/README 更新，commit `2990de9` |
 | 2026-08-04 | "还是不行"复盘：定位为旧对话上下文污染（非脚本问题），SKILL.md 加固第 0 步路由+绝对路径，需 /reset 后复测 | commit `e069221`，记忆更新 |
+| 2026-08-04 | 快手图文帖（图集）支持：find_photo 按 photoId+userName 匹配 + atlas.list 多图下载，实测 JJrDdb2H 四图全下（1080×1500），视频无回归 | commit `1ecfff4`，SKILL.md 快手兜底节重写 |
 
 ---
 
@@ -240,6 +246,13 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 🤖 趣闻：微信端 AI 自救时自己编辑了 SKILL.md 加「第 0 步平台路由」并 git 提交（85c606b），本次已保留其改动并加固
 - 🛠 加固：快手兜底节补充本机绝对路径命令 + 明确"不要自己 curl 探测快手短链"
 - ⚠️ 教训：**skill 修改后必须让用户 /reset 对话再测**——旧会话历史会让 AI 凭记忆行事，无视文件更新；快手短链按 UA 分流（移动 UA→chenzhongtech 可解析，桌面 UA→PC 页不可解析）
+
+### 2026-08-04 深夜 快手图文帖（图集）支持（commit `1ecfff4`）
+- 🐛 用户实测图文帖失败，微信端 AI 误报"作品私密/已删除"——实为脚本 `find_photo` 要求 `mainMvUrls` 非空，图集帖该字段为空被跳过
+- 🔍 解剖 `JJrDdb2H` 的 INIT_STATE：`photoType: HORIZONTAL_ATLAS`，图片在 `ext_params.atlas.list`（如 `/ufile/atlas/xxx_0.webp`），配 `atlas.cdnList`/`atlas.cdn` 域名拼完整 URL；`size` 数组给出每张尺寸（1080×1500）；图集还可能带 `atlas.music`（背景音乐 m4a，暂不下载）
+- 🛠 修复：find_photo 改按 `photoId`+`userName` 匹配；新增图集分支——逐张下载输出 `IMG_n:<path>`；视频帖逻辑不变（回归通过）
+- 📝 SKILL.md 快手兜底节重写（微信端 AI 曾把该节改回旧版，本次覆盖为最终版）
+- ✅ 实测：JJrDdb2H 四张 webp 原图全下（421-488KB/张），K652nUq8 视频回归正常，测试残留 0
 
 ---
 
