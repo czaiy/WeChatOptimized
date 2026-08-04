@@ -301,7 +301,11 @@ class UiaSender:
             area = rect.width() * rect.height()
             if area < 200:
                 continue
-            if ctrl.IsValuePatternAvailable:
+            try:
+                has_value = ctrl.GetValuePattern() is not None
+            except Exception:
+                has_value = False
+            if has_value:
                 self._input_control = ctrl
                 log.info(f"[发送器] 输入框已定位 ({rect.width()}x{rect.height()} ValuePattern)")
                 break

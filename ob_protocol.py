@@ -254,8 +254,11 @@ async def _dispatch_segment(seg, contact, sender, config):
 
         if img_path:
             try:
-                await asyncio.to_thread(sender.send_image, contact, img_path)
-                log.info(f"[OB11] 图片已发送至 {contact}")
+                ok = await asyncio.to_thread(sender.send_image, contact, img_path)
+                if ok:
+                    log.info(f"[OB11] 图片已发送至 {contact}")
+                else:
+                    log.warning(f"[OB11] 图片发送失败(sender返回False): {contact} <- {img_path}")
             finally:
                 if img_path and "tmp" in img_path:
                     try:
