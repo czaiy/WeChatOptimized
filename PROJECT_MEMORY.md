@@ -245,6 +245,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | 图片"发成文件"两连击修复：① webp 不被微信/.NET 识别→快手 CDN 同路径直下 .jpg（兜底 PIL 转 jpeg）+ SKILL.md 改 image 组件规则；② AstrBot base64 图片帧超 WS 1MB 默认限制→桥接器 max_size=64MB 并重启 | skill `7ef3963`、桥接器 `0dffe35`（新 PID 7732） |
 | 2026-08-04 | 图片发送第四关：uiautomation 2.0.29 无 IsValuePatternAvailable 导致发送崩溃且被误报成功→改 GetValuePattern() 探测 + ob_protocol 如实记录失败 | commit `9549462`，桥接器重启 |
 | 2026-08-04 | 图片积压输入栏（第五关）：控件定向 SendKeys 在暂存态丢 Enter + 暂存等待不足 + 发送按钮误匹配无名按钮→改全局按键(与 send_text 一致)+等待1.2s+按钮只认具名并记日志 | 桥接器重启（23:43），待用户复测 |
+| 2026-08-05 | 图片发送确认修复（Enter 兜底成功）；BGM 提取优化：抖音图文 BGM 在 `video.play_addr.uri`（不是空的 music.play_url），快手图集在 `atlas.music`，两脚本加 audio 参数；emoji 打印 GBK 炸编码→脚本 stdout UTF-8 防护 | skill `93a7f44`，实测抖音 mp3 3.8MB/快手 m4a 356KB 全通 |
 
 ---
 
@@ -271,6 +272,13 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 🛠 修复：find_photo 改按 `photoId`+`userName` 匹配；新增图集分支——逐张下载输出 `IMG_n:<path>`；视频帖逻辑不变（回归通过）
 - 📝 SKILL.md 快手兜底节重写（微信端 AI 曾把该节改回旧版，本次覆盖为最终版）
 - ✅ 实测：JJrDdb2H 四张 webp 原图全下（421-488KB/张），K652nUq8 视频回归正常，测试残留 0
+
+### 2026-08-05 凌晨 BGM 提取支持（skill commit `93a7f44`）
+- 🔍 用户在微信要"提取音频和图片"（抖音图文帖），微信端 AI 失败路径：music.play_url 空→试第三方音乐接口→接口失效→放弃
+- 🔑 关键事实：**抖音图文帖的 BGM 直链藏在 `video.play_addr.uri`**（完整 mp3 URL，ies-music CDN），`music` 字段只有 id/标题/封面；快手图集 BGM 在 `ext_params.atlas.music`（相对路径，配 musicCdnList 域名）
+- 🛠 两脚本加可选第 3 参数 `audio`：有则额外下载 BGM 输出 `AUDIO:<path>`；SKILL.md 新增「音频/BGM 提取」章节（视频帖抽音轨用 ffmpeg `-vn`）
+- 🐛 顺带修复：emoji 标题在 Windows GBK 控制台打印必炸（UnicodeEncodeError），两脚本头部加 `sys.stdout.reconfigure(encoding="utf-8", errors="replace")`
+- ✅ 实测：抖音图文 mp3 3.8MB、快手图集 m4a 356KB、无 audio 参数回归正常
 
 ---
 
