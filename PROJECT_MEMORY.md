@@ -269,6 +269,13 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - ✅ 实测：花火帖返回 11.1s/720×1422/带音轨 mp4（1.2MB）+2 张高分 jpeg+BGM；三项回归全过
 - 📌 成本意识：SnapAny 每次成功扣 1 credit，失败不扣；调用后要在总结里报消耗
 
+### 2026-08-05 02:30~02:50 Hellotik.app 逆向（免费备选兜底）
+- 背景：找免费替代 SnapAny 的方案
+- 🔍 逆向 hellotik.app（iiilab 引擎，Next.js）：协议比 snapany 精巧得多 —— **请求必须加密**（裸 POST 返回 426），解密 key **硬编码**客户端（`93838338562359368888868323563256`），字段名每周轮换（`activeProfileId: 2026w12` + 混淆字段名 `tk_e5eea8`/`sd_e5eea8`...），ticket 接口 **10 分钟/IP 限速**
+- 🛠 新脚本 `scripts/hellotik.py`（全链路验证通过）：动态配置抓取 → ticket → AES-GCM 请求加密 → AES-CBC 响应解密；依赖 pycryptodome
+- 📌 策略（用户确认）：**动图/live 视频首选 Hellotik（免费），限速时降级 SnapAny（付费）**；图片/BGM 仍用本地脚本
+- ✅ 提交推送 skill `0add5f9`，SKILL.md 补优先级策略和调用示例
+
 ---
 
 ## video-downloader-skill
