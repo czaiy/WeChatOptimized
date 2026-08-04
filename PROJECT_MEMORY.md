@@ -247,6 +247,19 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | 图片积压输入栏（第五关）：控件定向 SendKeys 在暂存态丢 Enter + 暂存等待不足 + 发送按钮误匹配无名按钮→改全局按键(与 send_text 一致)+等待1.2s+按钮只认具名并记日志 | 桥接器重启（23:43），待用户复测 |
 | 2026-08-05 | 图片发送确认修复（Enter 兜底成功）；BGM 提取优化：抖音图文 BGM 在 `video.play_addr.uri`（不是空的 music.play_url），快手图集在 `atlas.music`，两脚本加 audio 参数；emoji 打印 GBK 炸编码→脚本 stdout UTF-8 防护 | skill `93a7f44`，实测抖音 mp3 3.8MB/快手 m4a 356KB 全通 |
 
+### 2026-08-04 23:09~23:55 图片发送全链路打通（第五关）+ 日志诚实性
+- 用户微信测试图集：图片发送后**卡在输入栏**（粘贴+暂存成功，Enter 丢失）
+- 日志定位三连根因：①控件定向 SendKeys 在图片暂存态下 Enter 丢失（send_text 全局按键一直没事）②暂存等待 0.5s 不足 ③发送按钮误匹配无名按钮还返回成功
+- 修复（commit `93b9060`）：send_image 改与 send_text 完全一致的全局按键路径（聚焦→Ctrl+V→等1.2s→Enter），SendKeys 失败不再假装成功，发送按钮只认具名"发送/Send"并记日志
+- ✅ 用户复测确认修复；bridge.log 证据：图片暂存→1.2s→全局 Enter 成功
+- 📌 元教训（本轮最重要）：**微信端 AI 会依据假日志对下游撒谎**（第四、五关都出现过"谎报成功"），日志诚实性是 AI 自动化系统的信任地基；"AI 说成功"必须靠日志/真人双验证
+
+### 2026-08-05 00:11~00:30 BGM 提取优化（用户微信复测音频）
+- 用户发 xin 的抖音图文帖（"这几年你变了很多…"），实测解剖 `_ROUTER_DATA`
+- 🔑 BGM 直链在 `video.play_addr.uri`（ies-music mp3，3.8MB），`music.play_url` 确认是空的——微信端 AI 之前找的字段没错，但 BGM 不藏在那
+- 修复（skill commit `93a7f44`）：douyin_note.py/kuaishou.py 加可选 `audio` 参数输出 `AUDIO:<path>`，stdout UTF-8 防护（emoji 标题 GBK 打印必炸），SKILL.md 加「音频/BGM 提取」章节
+- ✅ 实测：抖音 mp3 3.8MB、快手图集 m4a 356KB、无参数回归全过；网页端发送图片+BGM 验收
+
 ---
 
 ## video-downloader-skill
