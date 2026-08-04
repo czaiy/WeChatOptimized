@@ -170,6 +170,12 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - **解决2**：`ob_client.py` 的 `websockets.connect` 加 `max_size=64MB`（commit `0dffe35`，已重启桥接器）
 - **教训**：**图片链路三关：格式（jpg/png/gif）→ 组件类型（image）→ 传输大小（WS 帧限制）；排查顺序先看桥接器日志**
 
+### 🔴 图片发送 UIA 崩溃（第四关）
+- **现象**：WS 帧问题解决后，日志 `[ERROR] 图片发送失败: 'EditControl' object has no attribute 'IsValuePatternAvailable'`，但 ob_protocol 仍打"图片已发送"，微信端 AI 误报成功
+- **根因**：uiautomation 2.0.29 没有 `IsValuePatternAvailable` 属性（且原代码漏了括号，即使有也是恒真）；sender 捕获异常返回 False，ob_protocol 不检查返回值
+- **解决**：改用 `ctrl.GetValuePattern() is not None` 探测（版本无关）；ob_protocol 检查 send_image 返回值如实记日志（commit `9549462`）
+- **教训**：**sender 的返回值必须被上层检查；图片发送是全新代码路径（剪贴板 SetImage+Ctrl+V），首次启用才暴露 UIA API 不兼容；文本发送正常≠图片发送正常**
+
 ---
 
 ## 五、关键配置速查
@@ -237,6 +243,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | "还是不行"复盘：定位为旧对话上下文污染（非脚本问题），SKILL.md 加固第 0 步路由+绝对路径，需 /reset 后复测 | commit `e069221`，记忆更新 |
 | 2026-08-04 | 快手图文帖（图集）支持：find_photo 按 photoId+userName 匹配 + atlas.list 多图下载，实测 JJrDdb2H 四图全下（1080×1500），视频无回归 | commit `1ecfff4`，SKILL.md 快手兜底节重写 |
 | 2026-08-04 | 图片"发成文件"两连击修复：① webp 不被微信/.NET 识别→快手 CDN 同路径直下 .jpg（兜底 PIL 转 jpeg）+ SKILL.md 改 image 组件规则；② AstrBot base64 图片帧超 WS 1MB 默认限制→桥接器 max_size=64MB 并重启 | skill `7ef3963`、桥接器 `0dffe35`（新 PID 7732） |
+| 2026-08-04 | 图片发送第四关：uiautomation 2.0.29 无 IsValuePatternAvailable 导致发送崩溃且被误报成功→改 GetValuePattern() 探测 + ob_protocol 如实记录失败 | commit `9549462`，桥接器重启 |
 
 ---
 
