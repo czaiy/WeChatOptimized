@@ -246,6 +246,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | 图片发送第四关：uiautomation 2.0.29 无 IsValuePatternAvailable 导致发送崩溃且被误报成功→改 GetValuePattern() 探测 + ob_protocol 如实记录失败 | commit `9549462`，桥接器重启 |
 | 2026-08-04 | 图片积压输入栏（第五关）：控件定向 SendKeys 在暂存态丢 Enter + 暂存等待不足 + 发送按钮误匹配无名按钮→改全局按键(与 send_text 一致)+等待1.2s+按钮只认具名并记日志 | 桥接器重启（23:43），待用户复测 |
 | 2026-08-05 | 图片发送确认修复（Enter 兜底成功）；BGM 提取优化：抖音图文 BGM 在 `video.play_addr.uri`（不是空的 music.play_url），快手图集在 `atlas.music`，两脚本加 audio 参数；emoji 打印 GBK 炸编码→脚本 stdout UTF-8 防护 | skill `93a7f44`，实测抖音 mp3 3.8MB/快手 m4a 356KB 全通 |
+| 2026-08-05 | SnapAny 云端解析接入：逆向 snapany.com（iiilab 引擎），旧免费签名 API 已下线，新 OpenAPI 需 key（注册送 50 credit，用户已领）；新脚本 snapany.py 兜底拿抖音动图/live 视频（分享页拿不到的 douyinvod mp4）；douyin_note 图片 jpeg 直下优化 | skill 新提交，花火帖实测 11s 动图原片，key 存 config.json 不入 git |
 
 ### 2026-08-04 23:09~23:55 图片发送全链路打通（第五关）+ 日志诚实性
 - 用户微信测试图集：图片发送后**卡在输入栏**（粘贴+暂存成功，Enter 丢失）
@@ -259,6 +260,14 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 🔑 BGM 直链在 `video.play_addr.uri`（ies-music mp3，3.8MB），`music.play_url` 确认是空的——微信端 AI 之前找的字段没错，但 BGM 不藏在那
 - 修复（skill commit `93a7f44`）：douyin_note.py/kuaishou.py 加可选 `audio` 参数输出 `AUDIO:<path>`，stdout UTF-8 防护（emoji 标题 GBK 打印必炸），SKILL.md 加「音频/BGM 提取」章节
 - ✅ 实测：抖音 mp3 3.8MB、快手图集 m4a 356KB、无参数回归全过；网页端发送图片+BGM 验收
+
+### 2026-08-05 02:00~02:35 SnapAny 逆向与接入（动图/live 视频兜底）
+- 背景：抖音图文帖的"动图"（长冈花火帖）分享页只有静态帧，四轮探测拿不到 live 视频（webp 单帧、无 mp4、tplv 换扩展名被忽略、web 版反爬）
+- 🔍 逆向 snapany.com：Next.js 三层结构（落地页/platform 应用/api 后端 Cloudflare），引擎是 iiilab 爱哔哩；旧免费签名 API（G-Footer=md5(link+lang+ts+固定key)）已 404 下线；现为付费 OpenAPI `POST api.snapany.com/openapi/v1/extract/post` + Bearer key，注册送 50 credit（1 credit/帖）
+- 🐛 踩坑：urllib 默认指纹被 Cloudflare 拦（error 1010），需浏览器 UA+Origin；免费额度需在 Console 手动领取（用户第一次 key 是 0 credit，领取后正常）
+- 🛠 落地（skill commit `7b09e82`）：新脚本 `snapany.py`（类型过滤参数 video,image,audio），key 存 skill 目录 config.json（.gitignore 已排除，确认未入库）；SKILL.md 加兜底章节+优先级规则（本地脚本优先免费，动图/live 才走付费）；顺带 douyin_note.py 图片 jpeg 直下（tplv CDN `:q80.webp`→`:q80.jpeg` 同签名直出，免 PIL 转换）
+- ✅ 实测：花火帖返回 11.1s/720×1422/带音轨 mp4（1.2MB）+2 张高分 jpeg+BGM；三项回归全过
+- 📌 成本意识：SnapAny 每次成功扣 1 credit，失败不扣；调用后要在总结里报消耗
 
 ---
 
