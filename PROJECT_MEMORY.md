@@ -207,7 +207,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - SSH 密钥：`~/.ssh/id_ed25519`
 - KEX 强制曲线：curve25519（配置在 `~/.ssh/config`）
 - WeChatOptimized 最新 commit：`b4d8eaf`
-- video-downloader-skill 最新 commit：`3ec0d22`
+- video-downloader-skill 最新 commit：`2990de9`
 
 ---
 
@@ -219,8 +219,21 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | 发送流程简化：移除 Escape 键、简化发送逻辑、修复 _ready 标志、添加文件发送功能 | sender.py/ob_protocol.py 更新、视频/文件消息类型支持 |
 | 2026-08-04 | 用户确认 video-downloader 下载后发送问题已修复，从待办移除并记入已完成 | 待办清单更新 |
 | 2026-08-04 | WeFlow token 轮换完成并重启桥接器（新 PID 5596，SSE/OB11 均连通）；清理规则实测通过（下载→发送→os.remove→0 残留）；README 截图待办按用户意愿移除 | config.json 新 token、PROJECT_MEMORY.md 更新 |
+| 2026-08-04 | video-downloader skill 优化：新增快手无水印解析脚本 + 平台策略速查表 + 结尾评论风格规则，实测通过 | scripts/kuaishou.py、SKILL.md/README 更新，commit `2990de9` |
+
+---
+
+## video-downloader-skill
+
+### 2026-08-04 快手支持 + 结尾风格优化（commit `2990de9`）
+- 🆕 `scripts/kuaishou.py`（纯标准库，仿 douyin_note.py 接口）：快手短链 → 移动 UA → `v.m.chenzhongtech.com` 分享页 → 解析 `window.INIT_STATE` JSON → `photo.mainMvUrls[0].url` 无水印 mp4 直链（kwimgs/yximgs CDN）+ caption + userName；图文帖回退取 coverUrls
+- 🔑 关键事实：INIT_STATE 的路由 key 是凯撒混淆的（tusjoh=string），但 value 完整可用，直接 raw_decode 递归找 mainMvUrls 即可
+- ⚙️ yt-dlp 2026.07.04 平台现状：**无快手提取器**；小红书 XiaoHongShu 提取器可用但源画质已被官方限制；微博 WeiboVideo 可用
+- ⚠️ 快手源画质封顶约 720p，平台限制，不用折腾
+- 📝 SKILL.md 变更：新增「平台策略速查」表 + 快手兜底章节；第 5 步结尾规则——禁止机械后缀"无水印版"，必须加一句基于标题的作品评论（不编造细节）
+- ✅ 实测：用户快手链接 K652nUq8（森川梨「我保证我是天使」）解析→下载 2.5MB→发送→清理 0 残留，全链路 4 秒
 
 ---
 
 *本文件维护人：czaiy（AI 助手同步维护）*
-*最后更新：2026-08-04（token 轮换+重启验证、清理规则实测通过、短期待办清零）*
+*最后更新：2026-08-04（video-downloader 新增快手解析支持 + 结尾风格规则）*
