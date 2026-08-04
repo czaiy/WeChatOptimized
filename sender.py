@@ -314,7 +314,8 @@ class UiaSender:
             self._input_control = candidates[0]
             log.warning("[发送器] 输入框无 ValuePattern，使用 SendKeys 后备")
 
-        # 查找发送按钮
+        # 查找发送按钮：只认名字明确含"发送/Send"的按钮（无名按钮不再匹配，
+        # 避免误点工具栏按钮）；找到/没找到都记日志便于排查
         try:
             buttons = []
             def find_buttons(ctrl, depth=0):
@@ -324,7 +325,7 @@ class UiaSender:
                     for child in ctrl.GetChildren():
                         if child.ControlTypeName == "ButtonControl":
                             bn = child.Name or ""
-                            if "发送" in bn or "Send" in bn or bn.strip() == "":
+                            if "发送" in bn or "Send" in bn:
                                 buttons.append(child)
                         find_buttons(child, depth + 1)
                 except Exception:
@@ -332,6 +333,11 @@ class UiaSender:
             find_buttons(self._window)
             if buttons:
                 self._send_button = buttons[0]
+                r = buttons[0].BoundingRectangle
+                log.info(f"[发送器] 找到发送按钮: '{buttons[0].Name}' [{r.left},{r.top} {r.width()}x{r.height()}]")
+            else:
+                self._send_button = None
+                log.info("[发送器] 未找到具名发送按钮，图片将用 Enter 发送")
         except Exception:
             pass
 
@@ -416,6 +422,8 @@ class UiaSender:
                 if not self._locate_input():
                     return False
 
+                # 聚焦输入框后用全局按键粘贴（与 send_text 一致，控件定向
+                # SendKeys 在图片暂存态下焦点会漂移导致 Enter 丢失）
                 if self._use_coord_fallback:
                     import ctypes
                     from ctypes import wintypes
@@ -431,20 +439,26 @@ class UiaSender:
                         ctypes.windll.user32.mouse_event(0x0002, 0, 0, 0, 0)
                         ctypes.windll.user32.mouse_event(0x0004, 0, 0, 0, 0)
                     time.sleep(0.3)
-                    self._auto.SendKeys('{Ctrl}v')
-                    time.sleep(0.5)
-                    self._auto.SendKeys('{Enter}')
-                    self._send_count += 1
-                    log.info(f"[发送器] 图片 → {contact}: {os.path.basename(image_path)}")
-                    return True
-
-                self._input_control.SendKeys('{Ctrl}v')
-                time.sleep(0.5)
-
-                if self._send_button:
-                    self._send_button.Click()
                 else:
-                    self._input_control.SendKeys('{Enter}')
+                    try:
+                        self._input_control.SetFocus()
+                    except Exception:
+                        pass
+                    time.sleep(0.2)
+                self._auto.SendKeys('{Ctrl}v')
+                # 大图(1080p+)解码进暂存区需要时间，太早按 Enter 会被吞
+                time.sleep(1.2)
+
+                sent = False
+                if self._send_button:
+                    try:
+                        self._send_button.Click()
+                        sent = True
+                    except Exception as e:
+                        log.warning(f"[发送器] 发送按钮点击失败，回退 Enter: {e}")
+                if not sent:
+                    self._auto.SendKeys('{Enter}')
+                time.sleep(0.4)
 
                 self._send_count += 1
                 log.info(f"[发送器] 图片 → {contact}: {os.path.basename(image_path)}")
