@@ -161,6 +161,15 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - **根因**：图集帖 `mainMvUrls` 为空，图片在 `photo.ext_params.atlas.list`（相对路径），需拼 `https://{atlas.cdnList[0].cdn}{path}`；`photoType: HORIZONTAL_ATLAS` 是图集标志
 - **教训**：**找 photo 对象按 `photoId`+`userName` 匹配，不能要求 mainMvUrls 非空；图集/单图/视频三种形态都要覆盖**
 
+### 🔴 图片发成文件 / WS 1009 断连（两连击）
+- **现象1**：图片到微信变成"文件"不能预览
+- **根因1**：① 微信发图走 .NET `SetImage` 不认 webp；② AI 用 `file` 组件发图
+- **解决1**：脚本直下 `.jpg`（快手 CDN 图集同路径换 `.jpg` 后缀直接可用，404 才回退 webp+PIL 转 jpeg）；SKILL.md 规则改为 jpg/png/gif 必须用 `{"type":"image"}` 组件
+- **现象2**：改 image 组件后"没发出来"，日志 `1009 message too big ... 3435314 > 1048576`
+- **根因2**：AstrBot OB11 客户端把本地图片转 base64 塞进 WS 帧，websockets 默认 max_size=1MB，桥接器侧拒收断连
+- **解决2**：`ob_client.py` 的 `websockets.connect` 加 `max_size=64MB`（commit `0dffe35`，已重启桥接器）
+- **教训**：**图片链路三关：格式（jpg/png/gif）→ 组件类型（image）→ 传输大小（WS 帧限制）；排查顺序先看桥接器日志**
+
 ---
 
 ## 五、关键配置速查
@@ -227,6 +236,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | video-downloader skill 优化：新增快手无水印解析脚本 + 平台策略速查表 + 结尾评论风格规则，实测通过 | scripts/kuaishou.py、SKILL.md/README 更新，commit `2990de9` |
 | 2026-08-04 | "还是不行"复盘：定位为旧对话上下文污染（非脚本问题），SKILL.md 加固第 0 步路由+绝对路径，需 /reset 后复测 | commit `e069221`，记忆更新 |
 | 2026-08-04 | 快手图文帖（图集）支持：find_photo 按 photoId+userName 匹配 + atlas.list 多图下载，实测 JJrDdb2H 四图全下（1080×1500），视频无回归 | commit `1ecfff4`，SKILL.md 快手兜底节重写 |
+| 2026-08-04 | 图片"发成文件"两连击修复：① webp 不被微信/.NET 识别→快手 CDN 同路径直下 .jpg（兜底 PIL 转 jpeg）+ SKILL.md 改 image 组件规则；② AstrBot base64 图片帧超 WS 1MB 默认限制→桥接器 max_size=64MB 并重启 | skill `7ef3963`、桥接器 `0dffe35`（新 PID 7732） |
 
 ---
 
