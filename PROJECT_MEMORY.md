@@ -220,6 +220,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | 用户确认 video-downloader 下载后发送问题已修复，从待办移除并记入已完成 | 待办清单更新 |
 | 2026-08-04 | WeFlow token 轮换完成并重启桥接器（新 PID 5596，SSE/OB11 均连通）；清理规则实测通过（下载→发送→os.remove→0 残留）；README 截图待办按用户意愿移除 | config.json 新 token、PROJECT_MEMORY.md 更新 |
 | 2026-08-04 | video-downloader skill 优化：新增快手无水印解析脚本 + 平台策略速查表 + 结尾评论风格规则，实测通过 | scripts/kuaishou.py、SKILL.md/README 更新，commit `2990de9` |
+| 2026-08-04 | "还是不行"复盘：定位为旧对话上下文污染（非脚本问题），SKILL.md 加固第 0 步路由+绝对路径，需 /reset 后复测 | commit `e069221`，记忆更新 |
 
 ---
 
@@ -233,7 +234,14 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 📝 SKILL.md 变更：新增「平台策略速查」表 + 快手兜底章节；第 5 步结尾规则——禁止机械后缀"无水印版"，必须加一句基于标题的作品评论（不编造细节）
 - ✅ 实测：用户快手链接 K652nUq8（森川梨「我保证我是天使」）解析→下载 2.5MB→发送→清理 0 残留，全链路 4 秒
 
+### 2026-08-04 晚 "还是不行" 复盘（commit `e069221`）
+- 🔍 根因链：微信群旧对话上下文污染——AI 带着之前失败的旧记忆，违反 skill grounding 规则没重读 SKILL.md，绕过脚本自己 curl 短链，桌面 UA 被快手分流到 PC 页（www.kuaishou.com/short-video），白白耗尽 6 次工具调用放弃
+- 🔑 脚本本身无问题：K652nUq8 和 ntczNFQ8 两条链接实测 100% 成功（2-4 秒）
+- 🤖 趣闻：微信端 AI 自救时自己编辑了 SKILL.md 加「第 0 步平台路由」并 git 提交（85c606b），本次已保留其改动并加固
+- 🛠 加固：快手兜底节补充本机绝对路径命令 + 明确"不要自己 curl 探测快手短链"
+- ⚠️ 教训：**skill 修改后必须让用户 /reset 对话再测**——旧会话历史会让 AI 凭记忆行事，无视文件更新；快手短链按 UA 分流（移动 UA→chenzhongtech 可解析，桌面 UA→PC 页不可解析）
+
 ---
 
 *本文件维护人：czaiy（AI 助手同步维护）*
-*最后更新：2026-08-04（video-downloader 新增快手解析支持 + 结尾风格规则）*
+*最后更新：2026-08-04（快手支持上线 + "还是不行"复盘：上下文污染教训）*
