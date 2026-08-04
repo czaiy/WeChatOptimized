@@ -65,6 +65,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - [x] 文件路径支持：base64://、绝对路径、文件名模式
 - [x] 剪贴板写入主路径为 `clipfile.exe`（C#），ctypes/PowerShell 为回退
 - [x] video-downloader skill 下载后自动发送问题已修复（原 AstrBot 端问题，2026-08-04 用户确认）
+- [x] video-downloader 清理规则实测通过（2026-08-04：真实下载→发送→第 6 步 os.remove→验证 0 残留）
 
 ### ✅ 阶段 5：GitHub 仓库整理
 - [x] 敏感信息清理：`config.example.json` 真实 token/wxid → 占位符
@@ -83,9 +84,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 ## 三、待办 / 下一步
 
 ### 🔲 短期
-- [ ] WeFlow token 重新生成（旧 token `f72001c11ed6be75029497692956baea` 曾混入 config.example.json，虽已清理但建议轮换）
-- [ ] video-downloader-skill 清理规则实际验证（SKILL.md 第 6 步的 python os.remove 是否在发送后可靠执行）
-- [ ] 桥接器 Web 控制面板截图补充到 README
+- [x] ~~WeFlow token 轮换~~（2026-08-04 完成：新 token `7e7ee7...` 已写入 config.json，桥接器重启后 SSE 连接验证通过）
 
 ### 🔲 中期
 - [ ] 群聊 @mention 稳定性测试（不同群规模下的识别率）
@@ -219,8 +218,9 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | 发视频窗口隐藏+视频发不出双顽疾根治；GitHub 双仓库整理上传；README 完善；建立项目记忆系统 | clipfile.exe 定稿、KEX 修复、PROJECT_MEMORY.md 建立 |
 | 2026-08-04 | 发送流程简化：移除 Escape 键、简化发送逻辑、修复 _ready 标志、添加文件发送功能 | sender.py/ob_protocol.py 更新、视频/文件消息类型支持 |
 | 2026-08-04 | 用户确认 video-downloader 下载后发送问题已修复，从待办移除并记入已完成 | 待办清单更新 |
+| 2026-08-04 | WeFlow token 轮换完成并重启桥接器（新 PID 5596，SSE/OB11 均连通）；清理规则实测通过（下载→发送→os.remove→0 残留）；README 截图待办按用户意愿移除 | config.json 新 token、PROJECT_MEMORY.md 更新 |
 
 ---
 
 *本文件维护人：czaiy（AI 助手同步维护）*
-*最后更新：2026-08-04（确认 video-downloader 发送问题已修复，移出待办）*
+*最后更新：2026-08-04（token 轮换+重启验证、清理规则实测通过、短期待办清零）*
