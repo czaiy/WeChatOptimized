@@ -244,6 +244,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | 快手图文帖（图集）支持：find_photo 按 photoId+userName 匹配 + atlas.list 多图下载，实测 JJrDdb2H 四图全下（1080×1500），视频无回归 | commit `1ecfff4`，SKILL.md 快手兜底节重写 |
 | 2026-08-04 | 图片"发成文件"两连击修复：① webp 不被微信/.NET 识别→快手 CDN 同路径直下 .jpg（兜底 PIL 转 jpeg）+ SKILL.md 改 image 组件规则；② AstrBot base64 图片帧超 WS 1MB 默认限制→桥接器 max_size=64MB 并重启 | skill `7ef3963`、桥接器 `0dffe35`（新 PID 7732） |
 | 2026-08-04 | 图片发送第四关：uiautomation 2.0.29 无 IsValuePatternAvailable 导致发送崩溃且被误报成功→改 GetValuePattern() 探测 + ob_protocol 如实记录失败 | commit `9549462`，桥接器重启 |
+| 2026-08-04 | 图片积压输入栏（第五关）：控件定向 SendKeys 在暂存态丢 Enter + 暂存等待不足 + 发送按钮误匹配无名按钮→改全局按键(与 send_text 一致)+等待1.2s+按钮只认具名并记日志 | 桥接器重启（23:43），待用户复测 |
 
 ---
 
