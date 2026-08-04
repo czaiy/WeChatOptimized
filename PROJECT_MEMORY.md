@@ -276,6 +276,12 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 📌 策略（用户确认）：**动图/live 视频首选 Hellotik（免费），限速时降级 SnapAny（付费）**；图片/BGM 仍用本地脚本
 - ✅ 提交推送 skill `0add5f9`，SKILL.md 补优先级策略和调用示例
 
+### 2026-08-05 03:15 长视频发送竞态修复
+- 🐛 现象：长视频发到一半文件被自动清理
+- 🔍 根因：`send_message_to_user` 调用只代表"入队"立刻返回，后台还在读文件上传到微信；但 SKILL.md 旧流程把清理命令（`os.remove dl_media*`）紧跟在 send 后面用 `;` 连接 → 文件瞬间被删，上传读到一半失败
+- 🛠 修复：Step 6 清理前加 `Start-Sleep`，按文件大小动态等（`max(5s, MB/1.5)`，假设桥接器 ~3MB/s 上行，2× 余量）；严禁清理命令紧挨 send
+- ✅ 提交推送 skill `fdc080d` | 记忆已更新
+
 ---
 
 ## video-downloader-skill
