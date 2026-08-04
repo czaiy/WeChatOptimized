@@ -62,6 +62,7 @@ async def _ob_client_main():
                     "X-Client-Role": "Universal",
                     "User-Agent": "OneBot/11",
                 },
+                max_size=64 * 1024 * 1024,  # AstrBot 把本地图片转 base64 塞进帧，1MB 默认限制会 1009
                 ping_interval=15,       # 内置心跳
                 ping_timeout=10,        # ping 超时
                 close_timeout=5,        # 关闭超时
