@@ -47,6 +47,10 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | ctypes 64 位句柄截漏 | ctypes 未显式声明 `restype`/`argtypes` | 显式声明后修复 |
 | 微信收不到视频 | 纯 ctypes CF_HDROP 只写 1 个剪贴板格式，微信 4.0 只接受 .NET/OLE 写入的剪贴板（5 个格式：DataObject、CF_HDROP、FileNameW、FileName、Ole Private Data） | 编译 `clipfile.exe`（C# SetFileDropList/SetImage） |
 | 误判"粘贴失败" | 微信 4.0 粘贴视频是"即粘即发"（无暂存、无确认框），检查输入框为空是错觉 | UIA 全树扫描发现消息列表里出现 `视频 0:10 @11:49` 才识破 |
+| 发送消息时窗口被关闭 | Escape 键会关闭整个微信窗口 | 移除 Escape 键，Enter 后直接进入聊天窗口 |
+| 发送器未就绪 | `_ensure_window` 找到窗口后未设置 `_ready = True` | 找到窗口后设置 `_ready = True` |
+| ValuePattern 属性错误 | uiautomation 库的 EditControl 没有 `IsValuePatternAvailable` 属性 | 改用 `GetValuePattern()` 方法 |
+| 发送到错误联系人 | 复用当前聊天窗口时，用户手动切换微信聊天窗口导致发送错误 | 每次发送都强制搜索联系人 |
 
 ### ✅ 阶段 3：关键组件
 - [x] `clipfile.exe`（C# 4.6KB，WinExe 无控制台）—— 写剪贴板，支持文件+图片双模式，0.34s 完成（原 PowerShell 需 2-3s）
@@ -55,13 +59,19 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - [x] 鼠标漫游（贝塞尔曲线随机移动）
 - [x] Web 控制面板（http://127.0.0.1:8766）
 
-### ✅ 阶段 4：GitHub 仓库整理
+### ✅ 阶段 4：文件发送功能
+- [x] `sender.py` 新增 `send_file` 方法（复制文件到剪贴板 → 粘贴 → 发送）
+- [x] `ob_protocol.py` 新增 `video` 和 `file` 消息类型处理
+- [x] 文件路径支持：base64://、绝对路径、文件名模式
+- [x] 剪贴板写入主路径为 `clipfile.exe`（C#），ctypes/PowerShell 为回退
+
+### ✅ 阶段 5：GitHub 仓库整理
 - [x] 敏感信息清理：`config.example.json` 真实 token/wxid → 占位符
 - [x] `.gitignore` 排除 config.json/yaml、日志、缓存、exe
 - [x] 双仓库本地提交 + SSH 推送
 - [x] 修复 OpenSSH 9.5 KEX 不兼容（sntrup761x25519-sha512 无法执行）→ 锁定 curve25519
 
-### ✅ 阶段 5：文档完善
+### ✅ 阶段 6：文档完善
 - [x] WeChatOptimized README 重写（旧版 src/ 目录和 yaml 配置与实际不符）
 - [x] README 补充参考项目归属
 - [x] video-downloader-skill README + SKILL.md 补充"发送后自动清理本地文件"特性
@@ -72,6 +82,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 ## 三、待办 / 下一步
 
 ### 🔲 短期
+- [ ] 修复 video-downloader skill 下载后不发送文件的问题（AstrBot 端问题，需检查 AstrBot 控制台输出）
 - [ ] WeFlow token 重新生成（旧 token `f72001c11ed6be75029497692956baea` 曾混入 config.example.json，虽已清理但建议轮换）
 - [ ] video-downloader-skill 清理规则实际验证（SKILL.md 第 6 步的 python os.remove 是否在发送后可靠执行）
 - [ ] 桥接器 Web 控制面板截图补充到 README
@@ -121,6 +132,31 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - **现象**：编译 clipfile.exe 时若用错 csc 路径会失败
 - **教训**：**Windows 上 .NET 4.x 编译路径固定为 `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`**，不要用 .NET Core 的 dotnet
 
+### 🔴 Escape 键关闭微信窗口
+- **现象**：搜索联系人后按 Escape 关闭搜索栏，结果关闭了整个微信窗口
+- **根因**：微信 4.0 中 Escape 键会关闭整个窗口，不是只关闭搜索栏
+- **教训**：**不要在微信 4.0 中使用 Escape 键；Enter 后直接进入聊天窗口即可**
+
+### 🔴 uiautomation 库 API 差异
+- **现象**：`EditControl` 没有 `IsValuePatternAvailable` 属性，报错
+- **根因**：uiautomation 库版本不同，API 有差异
+- **教训**：**检查控件是否支持 ValuePattern 时，使用 `GetValuePattern()` 方法，不要使用 `IsValuePatternAvailable` 属性**
+
+### 🔴 微信 4.0 窗口类名
+- **现象**：按旧版 `WeChatMainWndForPC` 类名找不到微信窗口
+- **根因**：微信 4.0 使用新的窗口类名 `mmui::MainWindow`
+- **教训**：**查找微信窗口时，优先查找 `mmui::MainWindow`，后备查找 `WeChatMainWndForPC`**
+
+### 🔴 UIA 遍历深度
+- **现象**：找不到输入框控件
+- **根因**：输入框在 UIA 树中的深度为 17，默认遍历深度不够
+- **教训**：**UIA 遍历深度至少设置为 25**
+
+### 🔴 坐标后备方案
+- **现象**：微信窗口移动后，坐标后备方案失效
+- **根因**：使用了绝对坐标而非相对坐标
+- **教训**：**坐标后备方案必须使用窗口相对坐标（基于 `GetWindowRect`）**
+
 ---
 
 ## 五、关键配置速查
@@ -133,8 +169,19 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | `clipfile.exe` | 剪贴板写入助手（已 gitignore） |
 | `ClipFileHelper.cs` | clipfile.exe 源码 |
 | `bridge.log` | 运行日志 |
-| `ob_protocol.py` | OB11 协议：wxb_ 临时文件复制逻辑（tempfile 目录） |
+| `ob_protocol.py` | OB11 协议：消息类型处理（text/image/video/file）+ wxb_ 临时文件复制（tempfile 目录） |
 | `config.py` | 配置加载：只加载 config.json（yaml 是遗留） |
+
+### 微信 4.0 关键信息
+- 窗口类名：`mmui::MainWindow`（旧版 `WeChatMainWndForPC`）
+- UIA 遍历深度：>25（sender.py line 256）
+- 发送流程：Ctrl+F 搜索联系人 → Enter 选中 → 等待 0.5s → Ctrl+V 粘贴 → Enter 发送
+
+### 发送器关键逻辑
+- 每次发送都强制搜索联系人（不复用当前聊天窗口，防止发送到错误联系人）
+- 坐标后备方案使用窗口相对坐标（基于 `GetWindowRect`）
+- 文件发送主路径：`clipfile.exe`（C# .NET）；ctypes 和 PowerShell 为回退
+- 消息类型处理：text、image、face、video、file
 
 ### 端口
 | 端口 | 服务 |
@@ -149,7 +196,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - Self-ID 算法：`zlib.crc32(wxid)`
 - clipfile.exe 调用：`clipfile.exe <路径> [image]`
 
-### 环境
+### 运行环境
 - OS：Windows 10/11
 - Python：3.12（系统 Python `C:\Program Files\Python312\pythonw.exe`）
 - .NET Framework 4.x（Windows 自带）
@@ -160,7 +207,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 远程：SSH (`git@github.com:czaiy/...`)
 - SSH 密钥：`~/.ssh/id_ed25519`
 - KEX 强制曲线：curve25519（配置在 `~/.ssh/config`）
-- WeChatOptimized 最新 commit：`5a5d189`
+- WeChatOptimized 最新 commit：`b4d8eaf`
 - video-downloader-skill 最新 commit：`3ec0d22`
 
 ---
@@ -170,8 +217,9 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 日期 | 摘要 | 产出 |
 |---|---|---|
 | 2026-08-04 | 发视频窗口隐藏+视频发不出双顽疾根治；GitHub 双仓库整理上传；README 完善；建立项目记忆系统 | clipfile.exe 定稿、KEX 修复、PROJECT_MEMORY.md 建立 |
+| 2026-08-04 | 发送流程简化：移除 Escape 键、简化发送逻辑、修复 _ready 标志、添加文件发送功能 | sender.py/ob_protocol.py 更新、视频/文件消息类型支持 |
 
 ---
 
 *本文件维护人：czaiy（AI 助手同步维护）*
-*最后更新：2026-08-04*
+*最后更新：2026-08-04（更新发送流程、文件发送、踩过坑等内容）*
