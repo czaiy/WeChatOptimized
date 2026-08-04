@@ -1,0 +1,4 @@
+uiautomation
+pyperclip
+websockets
+requests

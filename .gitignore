@@ -1,0 +1,22 @@
+# 运行时生成的文件
+bridge.log
+bridge.pid
+__pycache__/
+*.pyc
+@AutomationLog.txt
+
+# 真实配置（含 token / 个人路径），只上传 config.example.json
+config.json
+config.yaml
+
+# 虚拟环境
+venv/
+.venv/
+
+# 编译产物（源码见 ClipFileHelper.cs，编译命令见 README）
+clipfile.exe
+
+# 临时文件
+*.tmp
+wxb_*
+~$*
