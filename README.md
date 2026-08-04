@@ -4,6 +4,13 @@
 消息接收来自 [WeFlow](https://weflow.top)（SSE 推送），消息发送通过 UIA 自动化操作微信界面完成。
 支持文本、图片、视频/文件的完整收发闭环。
 
+## 参考项目
+
+本桥接器是在以下两个开源项目的基础上优化改造而成：
+
+- [KilincocomilK/WeeMessenger](https://github.com/KilincocomilK/WeeMessenger)
+- [alingalingling/Akasha-WeChat](https://github.com/alingalingling/Akasha-WeChat)
+
 ## 架构
 
 ```
