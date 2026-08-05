@@ -346,8 +346,9 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - ✅ 实测：夸克 1 文件 17s 完成，pan_status.json done=true/files/warns 字段全对
 - ⚠️ 观察：夸克并行速度波动大（同一文件：本地测 3.8MB/s vs 微信端 298KB/s）——公益站账号池限流按链接/时段浮动，并行只保证 ≥ 单流，不是恒定提速
 - ⚠️ 微信端需 /reset 重读 SKILL.md 后生效
+- 🆕 用户要求进度播报极简化（skill commit `3c1a5f2`）：状态文件加 total/processed 字段；播报一律只发"下载进度：X%"，只有用户明确询问才列已下载/失败清单；完成消息也不再主动列 warns
 
 ---
 
 *本文件维护人：czaiy（AI 助手同步维护）*
-*最后更新：2026-08-05 深夜（网盘二轮：下载失败自动重试 + pan_status.json + future_task 唤醒自动发送）*
+*最后更新：2026-08-05 深夜（网盘二轮 + 进度播报极简化：只报百分比，问了才给清单）*
