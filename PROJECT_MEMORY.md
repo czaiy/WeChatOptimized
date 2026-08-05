@@ -338,7 +338,16 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - ✅ 实测：百度 gghggg 文件夹链接递归 19 文件、子目录 docx 下载成功；夸克 gemini合集 2 文件 + zip 全通
 - ⚠️ 用户测试提醒：SKILL.md 更新后微信端需 /reset 重读技能
 
+### 2026-08-05 深夜 网盘二轮复盘：失败重试 + 自动发送 + 进度唤醒（skill commit `8e5ae53`）
+- 🔍 用户实测发现两问题：① 文件8.png 遇 HTTP 522（Cloudflare 瞬时错误）直接跳过不重试——根因：小文件走单流路径，完全没有外层重试（只有分片内部有 chunk 级重试）；② "下载完不自动发送"——实为 AI 被动触发机制限制：轮询几次被系统提示重复后停止 poll，脚本跑完没人知道，用户来催才发（两次都是用户"看进度"才触发发送）
+- 🛠️ 修复 1：pan_common.download_file 加外层 3 次重试（退避 4n 秒，"too big" 永久错误不重试）
+- 🛠️ 修复 2：脚本实时写 `<输出目录>/pan_status.json`（running/done/saved/current/files/zip/warns，原子写），外部可查进度
+- 🛠️ 修复 3（核心）：SKILL.md 新增「长任务自动通知」强制规则——预计 >3 分钟的网盘任务，启动后必须用 future_task 排 +3min 唤醒检查；note 自包含模板：读状态文件 → done 则发送+清理（含状态文件，幂等：文件不存在=已处理直接退出）→ 未完成则重排+可发进度播报 → 8 次上限后放弃；必须写明用户会话 ID（platform_id:message_type:session_id）
+- ✅ 实测：夸克 1 文件 17s 完成，pan_status.json done=true/files/warns 字段全对
+- ⚠️ 观察：夸克并行速度波动大（同一文件：本地测 3.8MB/s vs 微信端 298KB/s）——公益站账号池限流按链接/时段浮动，并行只保证 ≥ 单流，不是恒定提速
+- ⚠️ 微信端需 /reset 重读 SKILL.md 后生效
+
 ---
 
 *本文件维护人：czaiy（AI 助手同步维护）*
-*最后更新：2026-08-05 晚（网盘事故复盘：硬超时中断根因 + 百度文件夹递归 + Range 并行下载提速 127 倍）*
+*最后更新：2026-08-05 深夜（网盘二轮：下载失败自动重试 + pan_status.json + future_task 唤醒自动发送）*
