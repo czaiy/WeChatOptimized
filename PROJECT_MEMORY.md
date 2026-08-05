@@ -287,7 +287,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 背景：用户要"发网盘链接自动解析下载发文件"；选定闪链公益站（用户确认接受第三方公益站方案，都搞）
 - 🔍 百度（mf.dp.wpurl.cc）：`/api/v1/user/parse/get_file_list`（url/surl/pwd/dir/parse_password）→ uk/shareid/randsk/文件列表；`get_download_links`（randsk/uk/shareid/fs_id/surl/token=guest）→ CDN dlink（约 8h 有效）；`need_password=false` 免解析密码；后端 `allow_folder=false` **只支持单文件**
 - 🔍 夸克（kk.wpurl.cc）：从站点 JS 源码扒出完整 payload——`get_stoken.php {pwd_id, passcode, pwd}` → `get_file_list.php {pwd_id, stoken_url, pdir_fid, page, pwd}` → `file_save.php {fid_list, fid_token_list, pdir_fid, pwd_id, stoken, pwd}`（转到站点账号池，返回 file_id）→ `get_link.php {id, pwd}` → download_url + header
-- 🐛 坑①：夸克站要求"解析密码"（`pwd` 字段，非提取码），免费但需人工获取——快手极速版搜"诱因诱空"→第一个短剧→第29集→第一个字幕台词（**每日轮换**）；用户亲自获取并提供，存 skill config.json `quark_parse_pwd`（gitignore）
+- 🐛 坑①：夸克站要求"解析密码"（`pwd` 字段，非提取码），免费但需人工获取——按官方语雀文档步骤在快手极速版找指定短剧的指定集，取第一句字幕台词（**短剧名/集数会变，以文档为准**：https://www.yuque.com/wpurl/vp60ux/xu3codnavvxzdgr9 ；密码**每日轮换**）；用户亲自获取并提供，存 skill config.json `quark_parse_pwd`（gitignore）
 - 🐛 坑②：夸克直链下载 412 Precondition Failed——必须带 API 返回 header 里的 `cookie_puus`（拼成 `Cookie: __puus=...`），UA/referer 也用 API 返回值
 - 🛠 新脚本 `pan_baidu.py`/`pan_quark.py`（纯标准库，输出 `Pan:`/`FILE_n:`/`COUNT:`/`WARN:`，单文件 ≤500MB，夸克文件夹递归 ≤2 层，文件名带 dl_media 前缀沿用清理规则）；SKILL.md 新增「网盘链接解析」章节 + 平台路由/速查表更新
 - ✅ 实测：百度 surl 1abcDEF zip 下载成功；夸克文件夹分享（外贸报价单 3 文件）递归→转存→直链→下载全通
@@ -323,10 +323,11 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 🆕 `scripts/pan_baidu.py`：闪链百度站（mf.dp.wpurl.cc）免密解析——get_file_list → get_download_links（token=guest）→ CDN dlink 下载；支持多文件（默认 ≤10 个），UA 双兜底（桌面 UA 403 换 netdisk UA）
 - 🆕 `scripts/pan_quark.py`：闪链夸克站（kk.wpurl.cc）——get_stoken → get_file_list → file_save（站点账号池转存）→ get_link → 下载；**支持文件夹递归（≤2 层）**，这是夸克比百度强的点（百度后端 allow_folder=false）
 - 🔑 夸克直链必带 API 返回 header 的 `cookie_puus`（拼 `Cookie: __puus=...`）+ API 指定 UA/referer，否则 412
-- 🔑 夸克解析密码每日轮换：快手极速版搜"诱因诱空"→第一个短剧→第29集→第一个字幕台词；存 config.json `quark_parse_pwd`（gitignore，当前值用户 2026-08-05 提供）；报"解析密码错误"即过期
+- 🔑 夸克解析密码每日轮换：按官方语雀文档（https://www.yuque.com/wpurl/vp60ux/xu3codnavvxzdgr9）在快手极速版找指定短剧指定集取第一句字幕台词（**短剧名/集数会变，先抓文档确认**）；存 config.json `quark_parse_pwd`（gitignore，当前值用户 2026-08-05 提供）；报"解析密码错误"即过期
 - ⚠️ 百度报错含 `-20` = 验证码，无法自动化；公益站稳定性无保证，失败按错误话术放弃
 - 📝 SKILL.md：新增「网盘链接解析」章节 + 平台路由/速查表两行 + description 加网盘触发词
 - ✅ 实测：百度 zip（481B）下载成功；夸克文件夹分享（外贸报价单 3 文件 xlsx/txt）递归→转存→下载全通
+- 🆕 打包优化：两脚本加第 4 参数 `zip`——多文件下载后自动打包成 `dl_media_pan_all.zip` 输出 `ZIP:<path>`（微信逐文件发送慢，打包只发一次；文档类还能压体积）；单文件/用户要原文件时不加；实测夸克 3 文件→32KB zip
 
 ---
 
