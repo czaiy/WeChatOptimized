@@ -227,7 +227,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - SSH 密钥：`~/.ssh/id_ed25519`
 - KEX 强制曲线：curve25519（配置在 `~/.ssh/config`）
 - WeChatOptimized 最新 commit：`b4d8eaf`
-- video-downloader-skill 最新 commit：`2990de9`
+- video-downloader-skill 最新 commit：`867174f`
 
 ---
 
@@ -247,6 +247,7 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 | 2026-08-04 | 图片积压输入栏（第五关）：控件定向 SendKeys 在暂存态丢 Enter + 暂存等待不足 + 发送按钮误匹配无名按钮→改全局按键(与 send_text 一致)+等待1.2s+按钮只认具名并记日志 | 桥接器重启（23:43），待用户复测 |
 | 2026-08-05 | 图片发送确认修复（Enter 兜底成功）；BGM 提取优化：抖音图文 BGM 在 `video.play_addr.uri`（不是空的 music.play_url），快手图集在 `atlas.music`，两脚本加 audio 参数；emoji 打印 GBK 炸编码→脚本 stdout UTF-8 防护 | skill `93a7f44`，实测抖音 mp3 3.8MB/快手 m4a 356KB 全通 |
 | 2026-08-05 | SnapAny 云端解析接入：逆向 snapany.com（iiilab 引擎），旧免费签名 API 已下线，新 OpenAPI 需 key（注册送 50 credit，用户已领）；新脚本 snapany.py 兜底拿抖音动图/live 视频（分享页拿不到的 douyinvod mp4）；douyin_note 图片 jpeg 直下优化 | skill 新提交，花火帖实测 11s 动图原片，key 存 config.json 不入 git |
+| 2026-08-05 | 网盘链接解析上线：逆向闪链公益站（mf.dp.wpurl.cc 百度 / kk.wpurl.cc 夸克），新增 pan_baidu.py（免密，仅文件）+ pan_quark.py（文件夹递归 2 层，需每日轮换解析密码，用户已从快手极速版第29集字幕获取）；夸克直链需 API 返回的 __puus cookie 头否则 412 | skill `867174f`，百度 zip + 夸克 3 文件（文件夹分享）实测全通 |
 
 ### 2026-08-04 23:09~23:55 图片发送全链路打通（第五关）+ 日志诚实性
 - 用户微信测试图集：图片发送后**卡在输入栏**（粘贴+暂存成功，Enter 丢失）
@@ -282,6 +283,16 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 🛠 修复：Step 6 清理前加 `Start-Sleep`，按文件大小动态等（`max(5s, MB/1.5)`，假设桥接器 ~3MB/s 上行，2× 余量）；严禁清理命令紧挨 send
 - ✅ 提交推送 skill `fdc080d` | 记忆已更新
 
+### 2026-08-05 20:30~21:00 网盘链接解析（百度 + 夸克）
+- 背景：用户要"发网盘链接自动解析下载发文件"；选定闪链公益站（用户确认接受第三方公益站方案，都搞）
+- 🔍 百度（mf.dp.wpurl.cc）：`/api/v1/user/parse/get_file_list`（url/surl/pwd/dir/parse_password）→ uk/shareid/randsk/文件列表；`get_download_links`（randsk/uk/shareid/fs_id/surl/token=guest）→ CDN dlink（约 8h 有效）；`need_password=false` 免解析密码；后端 `allow_folder=false` **只支持单文件**
+- 🔍 夸克（kk.wpurl.cc）：从站点 JS 源码扒出完整 payload——`get_stoken.php {pwd_id, passcode, pwd}` → `get_file_list.php {pwd_id, stoken_url, pdir_fid, page, pwd}` → `file_save.php {fid_list, fid_token_list, pdir_fid, pwd_id, stoken, pwd}`（转到站点账号池，返回 file_id）→ `get_link.php {id, pwd}` → download_url + header
+- 🐛 坑①：夸克站要求"解析密码"（`pwd` 字段，非提取码），免费但需人工获取——快手极速版搜"诱因诱空"→第一个短剧→第29集→第一个字幕台词（**每日轮换**）；用户亲自获取并提供，存 skill config.json `quark_parse_pwd`（gitignore）
+- 🐛 坑②：夸克直链下载 412 Precondition Failed——必须带 API 返回 header 里的 `cookie_puus`（拼成 `Cookie: __puus=...`），UA/referer 也用 API 返回值
+- 🛠 新脚本 `pan_baidu.py`/`pan_quark.py`（纯标准库，输出 `Pan:`/`FILE_n:`/`COUNT:`/`WARN:`，单文件 ≤500MB，夸克文件夹递归 ≤2 层，文件名带 dl_media 前缀沿用清理规则）；SKILL.md 新增「网盘链接解析」章节 + 平台路由/速查表更新
+- ✅ 实测：百度 surl 1abcDEF zip 下载成功；夸克文件夹分享（外贸报价单 3 文件）递归→转存→直链→下载全通
+- 📌 注意：公益站稳定性无保证；夸克密码每日过期需重取（报"解析密码错误"时提示用户）；百度 -20 = 验证码拦截无法自动化
+
 ---
 
 ## video-downloader-skill
@@ -308,14 +319,16 @@ WeFlow ──SSE──▶ WeChatOptimized ──OneBot v11(WS)──▶ AstrBot 
 - 📝 SKILL.md 快手兜底节重写（微信端 AI 曾把该节改回旧版，本次覆盖为最终版）
 - ✅ 实测：JJrDdb2H 四张 webp 原图全下（421-488KB/张），K652nUq8 视频回归正常，测试残留 0
 
-### 2026-08-05 凌晨 BGM 提取支持（skill commit `93a7f44`）
-- 🔍 用户在微信要"提取音频和图片"（抖音图文帖），微信端 AI 失败路径：music.play_url 空→试第三方音乐接口→接口失效→放弃
-- 🔑 关键事实：**抖音图文帖的 BGM 直链藏在 `video.play_addr.uri`**（完整 mp3 URL，ies-music CDN），`music` 字段只有 id/标题/封面；快手图集 BGM 在 `ext_params.atlas.music`（相对路径，配 musicCdnList 域名）
-- 🛠 两脚本加可选第 3 参数 `audio`：有则额外下载 BGM 输出 `AUDIO:<path>`；SKILL.md 新增「音频/BGM 提取」章节（视频帖抽音轨用 ffmpeg `-vn`）
-- 🐛 顺带修复：emoji 标题在 Windows GBK 控制台打印必炸（UnicodeEncodeError），两脚本头部加 `sys.stdout.reconfigure(encoding="utf-8", errors="replace")`
-- ✅ 实测：抖音图文 mp3 3.8MB、快手图集 m4a 356KB、无 audio 参数回归正常
+### 2026-08-05 晚 网盘链接解析：百度 + 夸克（skill commit `867174f`）
+- 🆕 `scripts/pan_baidu.py`：闪链百度站（mf.dp.wpurl.cc）免密解析——get_file_list → get_download_links（token=guest）→ CDN dlink 下载；支持多文件（默认 ≤10 个），UA 双兜底（桌面 UA 403 换 netdisk UA）
+- 🆕 `scripts/pan_quark.py`：闪链夸克站（kk.wpurl.cc）——get_stoken → get_file_list → file_save（站点账号池转存）→ get_link → 下载；**支持文件夹递归（≤2 层）**，这是夸克比百度强的点（百度后端 allow_folder=false）
+- 🔑 夸克直链必带 API 返回 header 的 `cookie_puus`（拼 `Cookie: __puus=...`）+ API 指定 UA/referer，否则 412
+- 🔑 夸克解析密码每日轮换：快手极速版搜"诱因诱空"→第一个短剧→第29集→第一个字幕台词；存 config.json `quark_parse_pwd`（gitignore，当前值用户 2026-08-05 提供）；报"解析密码错误"即过期
+- ⚠️ 百度报错含 `-20` = 验证码，无法自动化；公益站稳定性无保证，失败按错误话术放弃
+- 📝 SKILL.md：新增「网盘链接解析」章节 + 平台路由/速查表两行 + description 加网盘触发词
+- ✅ 实测：百度 zip（481B）下载成功；夸克文件夹分享（外贸报价单 3 文件 xlsx/txt）递归→转存→下载全通
 
 ---
 
 *本文件维护人：czaiy（AI 助手同步维护）*
-*最后更新：2026-08-04（快手支持上线 + "还是不行"复盘：上下文污染教训）*
+*最后更新：2026-08-05（网盘链接解析上线：百度免密 + 夸克文件夹递归，闪链公益站）*
